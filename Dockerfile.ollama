@@ -1,0 +1,13 @@
+FROM ollama/ollama
+
+# Install curl (Alpine or Debian base — handle both)
+RUN apt-get update && apt-get install -y curl || apk add --no-cache curl
+# Copy your startup script into the image
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
+# Override the ENTRYPOINT so it doesn’t default to `ollama`
+ENTRYPOINT []
+
+# Start Ollama and pull the model
+CMD ["/start.sh"]

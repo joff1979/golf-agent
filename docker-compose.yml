@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  ollama:
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+
+  golf-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - COSMOS_URL=${COSMOS_URL}
+      - COSMOS_KEY=${COSMOS_KEY}
+      - API_KEY=${API_KEY}
+    depends_on:
+      - ollama
+    volumes:
+      - .:/app
+
+volumes:
+  ollama_models:
