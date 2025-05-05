@@ -1,0 +1,41 @@
+name: Build and Deploy Golf Agent
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AZURE_CONTAINER_REGISTRY: acraiaroad.azurecr.io
+  CONTAINER_APP_NAME: golf-agent
+  RESOURCE_GROUP: rg-jamies-ai-a-road
+  CONTAINER_ENVIRONMENT: research-env
+  IMAGE_TAG: latest
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to ACR
+        run: az acr login --name acraiaroad
+
+      - name: Build and Push Image (golf-agent)
+        run: |
+          docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.CONTAINER_APP_NAME }}:${{ env.IMAGE_TAG }} .
+          docker push ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.CONTAINER_APP_NAME }}:${{ env.IMAGE_TAG }}
+
+      - name: Deploy to Azure Container Apps
+        run: |
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ env.CONTAINER_APP_NAME }}:${{ env.IMAGE_TAG }}
