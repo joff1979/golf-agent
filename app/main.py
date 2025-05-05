@@ -1,68 +1,24 @@
 # golf_agent/main.py
-from fastapi import FastAPI, HTTPException, Query, Depends, Header
-from pydantic import BaseModel
-from golf_parser import parse_scorecard   # ✅ must match actual import
-from round_manager import (
-    start_new_round,
-    add_hole_to_round,
-    end_round,
-    load_rounds
-)
-from round_manager import router as round_router
-from auth import verify_api_key
+from fastapi import FastAPI, Depends
+# Corrected imports based on new structure
+# Remove unused imports if parse_scorecard etc. are only used in routes
+# from app.services.parser import parse_scorecard
+# from app.services.round_manager import (
+#     start_new_round,
+#     add_hole_to_round,
+#     end_round,
+#     load_rounds
+# )
+from app.services.round_manager import router as round_manager_router # Renamed for clarity
+from app.api.routes import router as api_router # Import the new API router
+from app.auth import verify_api_key # Corrected import
+
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI(dependencies=[Depends(verify_api_key)])
-app.include_router(round_router)
 
-class ParsedResult(BaseModel):
-    hole: int
-    score: int
-    fairway: str | None = None
-    green: str | None = None
-    putts: int | None = None
-    clubs: list[str] | None = []
-   
-import os
-
-API_KEY = os.getenv("API_KEY")
-
-def verify_api_key(x_api_key: str = Header(...)):
-    if x_api_key != API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid API Key")
-
-@app.get("/parse")
-def parse(input: str = Query(...)):
-    results = parse_scorecard(input)
-
-    if isinstance(results, list):
-        for hole in results:
-            add_hole_to_round(hole)
-    elif isinstance(results, dict):
-        add_hole_to_round(results)
-    else:
-        raise HTTPException(status_code=400, detail="Invalid parse result structure")
-
-    return results
-
-@app.post("/start_round")
-def start_round(course: str = Query(...)):
-    round_id = start_new_round(course)
-    return {"message": f"Started new round at {course}", "round_id": round_id}
-
-@app.post("/end_round", dependencies=[Depends(verify_api_key)])
-def end(force: bool = Query(False)):
-    try:
-        end_round(force_save=force)
-        return {"message": "Round saved successfully"}
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
-    
-from fastapi.responses import JSONResponse
-
-@app.get("/rounds")
-def list_saved_rounds():
-    try:
-        rounds = load_rounds()
-        return JSONResponse(content=rounds)
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+# Include routers
+app.include_router(round_manager_router) # Include router from round_manager
+app.include_router(api_router) # Include the main API router
