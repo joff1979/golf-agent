@@ -38,7 +38,7 @@ def start_new_round(course_name: str):
         "holes": []
     }
     _round_filename = os.path.join(ROUNDS_DIR, f"{round_id}.json")
-    print(f"📗 New round started: {_round_filename}")
+    print(f"📗 New round  started: {_round_filename}")
     return round_id
 
 @router.post("/start_round")
