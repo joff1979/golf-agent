@@ -1,0 +1,39 @@
+properties:
+  managedEnvironmentId: /subscriptions/b45fe4b0-dadd-4e0a-aea2-d1767e96badf/resourceGroups/rg-jamies-ai-a-road/providers/Microsoft.App/managedEnvironments/research-env
+  configuration:
+    secrets:
+      - name: api-key # Name used in secretref:
+      - name: cosmos-key # Name used in secretref:
+      # Add other secrets if needed, e.g., for registry password
+    ingress:
+      external: true
+      targetPort: 8000 # Target golf-agent container port
+      transport: auto
+    registries: # Optional but recommended: Add registry credentials if needed
+      - server: acraiaroad.azurecr.io
+        # If using a service principal for ACR login, you might need username/password secrets
+        # username: ${{ secrets.ACR_USERNAME }}
+        # passwordSecretRef: acr-password # Reference another secret defined above
+  template:
+    containers:
+      - image: acraiaroad.azurecr.io/golf-agent:latest # Make sure image name matches what workflow pushes
+        name: golf-agent
+        env:
+          - name: API_KEY
+            secretRef: api-key # Reference the secret defined above
+          - name: COSMOS_KEY
+            secretRef: cosmos-key # Reference the secret defined above
+          - name: COSMOS_URL
+            value: "https://cosmos-golf-agent.documents.azure.com:443/" # Replace with your actual Cosmos URL
+          - name: OLLAMA_HOST # Point to ollama container running on localhost within the ACA env
+            value: "http://localhost:11434"
+        resources: # Optional: Define resource requests/limits
+          cpu: 0.5
+          memory: 1.0Gi
+      - image: acraiaroad.azurecr.io/ollama:latest # Make sure image name matches what workflow pushes
+        name: ollama
+        # Ollama doesn't typically need environment variables unless customizing models dir etc.
+        # Ports are not defined here; communication happens over localhost.
+        resources: # Optional: Ollama might need more resources
+          cpu: 1.0 # Adjust as needed
+          memory: 2.0Gi # Adjust as needed
